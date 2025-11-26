@@ -6,17 +6,34 @@ Date: 2025-11-26
 """
 
 import aiomysql
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.core.config import settings
+from app.db.base import Base
 
-
-# Database connection pool (will be initialized in Story 1.2)
+# Database connection pool (aiomysql)
 db_pool = None
+
+# SQLAlchemy async engine (for migrations and ORM)
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10
+)
+
+# Create async session factory
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False
+)
 
 
 async def init_db_pool():
-    """
-    Initialize database connection pool.
-    """
+    """Initialize database connection pool."""
     global db_pool
     try:
         db_pool = await aiomysql.create_pool(
@@ -35,14 +52,26 @@ async def init_db_pool():
 
 
 async def close_db_pool():
-    """
-    Close database connection pool.
-    """
+    """Close database connection pool."""
     global db_pool
     if db_pool:
         db_pool.close()
         await db_pool.wait_closed()
         print("✅ Database pool closed")
+
+
+async def get_db():
+    """
+    Dependency for getting async database sessions.
+    
+    Yields:
+        AsyncSession: Database session
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 
 async def check_database_connection() -> bool:
