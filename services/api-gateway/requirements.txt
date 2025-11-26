@@ -1,0 +1,38 @@
+# FastAPI & Web Framework
+fastapi==0.121.3
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20
+
+# Database
+sqlalchemy==2.0.36
+alembic==1.14.0
+aiomysql==0.2.0
+greenlet==3.1.1
+
+# Configuration & Validation
+pydantic==2.10.3
+pydantic-settings==2.7.0
+
+# AI Model - RT-DETRv2
+ultralytics==8.3.50
+torch==2.5.1
+torchvision==0.20.1
+
+# Image Processing & Fraud Detection
+pillow==11.0.0
+imagehash==4.3.1
+opencv-python==4.10.0.84
+numpy==1.26.4
+
+# HTTP Client
+httpx==0.28.1
+
+# Logging
+structlog==24.4.0
+
+# Security (Future)
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Utilities
+python-dotenv==1.0.1

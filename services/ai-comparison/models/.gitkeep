@@ -1,0 +1,3 @@
+# This directory will contain AI model weights
+# SAM3 model: sam3.pth
+# Grounding DINO model: groundingdino_1.6_pro.pth
