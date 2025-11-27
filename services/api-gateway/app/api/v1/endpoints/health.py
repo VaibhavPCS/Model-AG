@@ -1,86 +1,49 @@
-"""
-Health Check Endpoint
-Purpose: System health and readiness checks
-Author: BMAD BMM Agents Dev
-Date: 2025-11-26
-"""
-
-from fastapi import APIRouter, status
-from typing import Dict
+from fastapi import APIRouter
 from datetime import datetime
-import sys
-import os
 
-from app.db.session import check_database_connection
-from app.core.config import settings
+from app.db.session import engine
+from sqlalchemy import text
+
+from app.api.v1.endpoints.submissions import rtdetr_service
+from app.api.v1.endpoints.comparison import grounding_dino_service, sam3_service
 
 router = APIRouter()
 
 
-@router.get(
-    "/health",
-    status_code=status.HTTP_200_OK,
-    response_model=Dict,
-    summary="Health Check",
-    description="Check if the API Gateway service is running and healthy"
-)
-async def health_check() -> Dict:
-    """
-    Health check endpoint.
-    
-    Returns comprehensive health status including:
-    - Service status
-    - Python version
-    - Timestamp
-    - Environment info
-    
-    Returns:
-        dict: Health status information
-    """
+@router.get("/health")
+async def health_root():
+    return {"status": "ok"}
+
+
+@router.get("/health/ready")
+async def readiness_check():
+    # Database check
+    db_status = "disconnected"
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        db_status = "connected"
+    except Exception:
+        db_status = "disconnected"
+
+    # RT-DETR status
+    rtdetr_status = "loaded" if getattr(rtdetr_service, "model", None) is not None else "not_loaded"
+
+    # Grounding DINO status
+    dino_status = "loaded" if getattr(grounding_dino_service, "model", None) is not None else "not_loaded"
+
+    # SAM 2.1 status
+    sam_status = "loaded" if getattr(sam3_service, "predictor", None) is not None else "not_loaded"
+
     return {
-        "status": "healthy",
+        "ready": db_status == "connected" and rtdetr_status == "loaded",
         "service": "API Gateway",
+        "checks": {
+            "database": db_status,
+            "rtdetr_model": rtdetr_status,
+            "grounding_dino": dino_status,
+            "sam2_1": sam_status,
+        },
+        "database_url": "root@localhost:3306/construction_monitoring",
         "timestamp": datetime.utcnow().isoformat(),
-        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-        "environment": "development" if settings.DEBUG else "production"
-    }
-
-
-@router.get(
-    "/health/ready",
-    status_code=status.HTTP_200_OK,
-    response_model=Dict,
-    summary="Readiness Check",
-    description="Check if the service is ready to accept requests"
-)
-async def readiness_check() -> Dict:
-    """
-    Readiness check endpoint.
-    
-    Verifies that all required dependencies are available:
-    - Database connection (MySQL)
-    - AI model loaded (future)
-    - Storage accessible (future)
-    
-    Returns:
-        dict: Readiness status
-    """
-    # Check database connection
-    db_connected = await check_database_connection()
-    
-    checks = {
-        "database": "connected" if db_connected else "disconnected",
-        "rtdetr_model": "not_loaded",  # Will be implemented in Story 2.1
-        "storage": "available"
-    }
-    
-    # Determine overall readiness
-    all_ready = db_connected  # Database is critical for readiness
-    
-    return {
-        "ready": all_ready,
-        "service": "API Gateway",
-        "checks": checks,
-        "database_url": f"{settings.MYSQL_USER}@{settings.MYSQL_HOST}:{settings.MYSQL_PORT}/{settings.MYSQL_DATABASE}",
-        "timestamp": datetime.utcnow().isoformat()
     }

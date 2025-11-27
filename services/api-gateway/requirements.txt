@@ -37,3 +37,11 @@ passlib[bcrypt]==1.7.4
 # Utilities
 python-dotenv==1.0.1
 haversine==2.6.0
+
+# Production AI Models`
+segment-anything==1.0
+# Grounding DINO usually needs to be installed from git, but we'll try a standard pip if available or git
+git+https://github.com/IDEA-Research/GroundingDINO.git
+opencv-python==4.10.0.84
+supervision==0.18.0
+
