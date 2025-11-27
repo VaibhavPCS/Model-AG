@@ -36,3 +36,4 @@ passlib[bcrypt]==1.7.4
 
 # Utilities
 python-dotenv==1.0.1
+haversine==2.6.0

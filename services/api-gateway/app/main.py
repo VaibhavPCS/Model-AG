@@ -9,7 +9,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.api.v1.endpoints import health
 from app.core.config import settings
 from app.db.session import init_db_pool, close_db_pool
 
@@ -17,18 +16,7 @@ from app.db.session import init_db_pool, close_db_pool
 # Application lifespan manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Manage application lifecycle events.
-    
-    Startup:
-        - Initialize database connections
-        - Load AI models into memory
-        - Set up logging
-        
-    Shutdown:
-        - Close database connections
-        - Clean up resources
-    """
+    """Manage application lifecycle events."""
     # Startup
     print("🚀 Starting API Gateway Service...")
     print(f"📊 Database: {settings.MYSQL_DATABASE}")
@@ -37,6 +25,12 @@ async def lifespan(app: FastAPI):
     
     # Initialize database pool
     await init_db_pool()
+    
+    # ✅ Load RT-DETR model (ADD THIS)
+    from app.api.v1.endpoints.submissions import rtdetr_service
+    print("🤖 Loading RT-DETR model...")
+    await rtdetr_service.load_model()
+    print("✅ RT-DETR model loaded!")
     
     print("✅ API Gateway is ready!")
     
@@ -61,11 +55,14 @@ app = FastAPI(
 # CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Import routers
+from app.api.v1.endpoints import health, submissions
 
 # Include routers
 app.include_router(
@@ -74,15 +71,16 @@ app.include_router(
     tags=["health"]
 )
 
+app.include_router(
+    submissions.router,
+    prefix=settings.API_V1_PREFIX,
+    tags=["submissions"]
+)
+
 
 @app.get("/")
 async def root():
-    """
-    Root endpoint - API information.
-    
-    Returns:
-        dict: API metadata and status
-    """
+    """Root endpoint - API information."""
     return {
         "service": "API Gateway",
         "version": settings.VERSION,

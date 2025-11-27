@@ -1,11 +1,4 @@
-"""
-Submission Model
-Purpose: Represents a photo submission for a site
-Author: BMAD BMM Agents Dev
-Date: 2025-11-26
-"""
-
-from sqlalchemy import Column, Integer, String, DECIMAL, DateTime, ForeignKey, Text, Enum
+from sqlalchemy import Column, Integer, String, DECIMAL, DateTime, ForeignKey, Text, Enum, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -21,20 +14,7 @@ class SubmissionStatus(enum.Enum):
 
 
 class Submission(Base):
-    """
-    Photo submission model.
-    
-    Attributes:
-        id: Primary key
-        site_id: Foreign key to Site
-        photo_url: Path to stored photo
-        gps_lat: GPS latitude when photo was taken
-        gps_lon: GPS longitude when photo was taken
-        timestamp: When photo was submitted
-        status: Processing status
-        surveyor_id: ID of surveyor who submitted (future)
-        created_at: Record creation timestamp
-    """
+    """Photo submission model."""
     
     __tablename__ = "submissions"
     
@@ -55,7 +35,11 @@ class Submission(Base):
         default=SubmissionStatus.PENDING,
         index=True
     )
-    surveyor_id = Column(Integer, nullable=True)  # Future: FK to users table
+    surveyor_id = Column(Integer, nullable=False, index=True)  # ✅ Changed to nullable=False
+    
+    # NEW COLUMNS FOR STORY 2.1 ✅
+    phash = Column(String(64), nullable=True, index=True)  # ✅ ADD THIS
+    is_approved = Column(Boolean, default=False, index=True)  # ✅ ADD THIS
     
     # Timestamps
     created_at = Column(DateTime, nullable=False, server_default=func.now())
