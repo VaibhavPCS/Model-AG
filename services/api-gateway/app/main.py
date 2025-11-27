@@ -12,6 +12,44 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.db.session import init_db_pool, close_db_pool
 
+from app.api.v1.endpoints.comparison import grounding_dino_service, sam3_service 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifecycle events."""
+    # Startup
+    print("🚀 Starting API Gateway Service...")
+    print(f"📊 Database: {settings.MYSQL_DATABASE}")
+    print(f"🔌 MySQL Host: {settings.MYSQL_HOST}:{settings.MYSQL_PORT}")
+    print(f"👤 MySQL User: {settings.MYSQL_USER}")
+    
+    # Initialize database pool
+    await init_db_pool()
+    
+    # Load RT-DETR model
+    from app.api.v1.endpoints.submissions import rtdetr_service
+    print("🤖 Loading RT-DETR model...")
+    await rtdetr_service.load_model()
+    print("✅ RT-DETR model loaded!")
+    
+    # ✅ Load Grounding DINO model
+    print("🤖 Loading Grounding DINO model...")
+    await grounding_dino_service.load_model()
+    print("✅ Grounding DINO model loaded!")
+    
+    # ✅ Load SAM3 model
+    print("🤖 Loading SAM3 model...")
+    await sam3_service.load_model()
+    print("✅ SAM3 model loaded!")
+    
+    print("✅ API Gateway is ready!")
+    
+    yield
+    
+    # Shutdown
+    print("🛑 Shutting down API Gateway Service...")
+    await close_db_pool()
+
 
 # Application lifespan manager
 @asynccontextmanager
@@ -62,7 +100,7 @@ app.add_middleware(
 )
 
 # Import routers
-from app.api.v1.endpoints import health, submissions
+from app.api.v1.endpoints import health, submissions, comparison
 
 # Include routers
 app.include_router(
@@ -75,6 +113,12 @@ app.include_router(
     submissions.router,
     prefix=settings.API_V1_PREFIX,
     tags=["submissions"]
+)
+
+app.include_router(
+    comparison.router,
+    prefix=settings.API_V1_PREFIX,
+    tags=["comparison"]
 )
 
 
